@@ -2,14 +2,16 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'java-complete-build'
-        CONTAINER  = 'java-complete-container'
+        // Generates safe lowercase names per branch, e.g., java-app-main or java-app-feature-login-module
+        SAFE_BRANCH = "${BRANCH_NAME.replace('/', '-').toLowerCase()}"
+        IMAGE_NAME  = "java-complete-${SAFE_BRANCH}"
+        CONTAINER   = "java-container-${SAFE_BRANCH}"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Stage 1: Source code successfully pulled.'
+                echo "Stage 1: Source code successfully pulled for branch: ${BRANCH_NAME}"
             }
         }
 
@@ -29,7 +31,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                echo 'Stage 4: Building container image...'
+                echo "Stage 4: Building container image ${IMAGE_NAME}..."
                 sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
                 sh "docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest"
             }
@@ -37,10 +39,9 @@ pipeline {
 
         stage('Docker Run') {
             steps {
-                echo 'Stage 5: Deploying container...'
+                echo "Stage 5: Deploying container ${CONTAINER}..."
                 sh """
-                    docker stop ${CONTAINER} || true
-                    docker rm ${CONTAINER} || true
+                    docker rm -f ${CONTAINER} || true
                     docker run --name ${CONTAINER} ${IMAGE_NAME}:latest
                 """
             }
